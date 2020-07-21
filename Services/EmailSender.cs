@@ -4,13 +4,14 @@ using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-using MailKit.Net.Smtp;
 using Michaelsoft.Mailer.Extensions;
 using Michaelsoft.Mailer.Interfaces;
 using Michaelsoft.Mailer.Settings;
 using Microsoft.Extensions.Options;
 using MimeKit;
 using MimeKit.Text;
+using AttachmentCollection = MimeKit.AttachmentCollection;
+using SmtpClient = MailKit.Net.Smtp.SmtpClient;
 
 namespace Michaelsoft.Mailer.Services
 {
@@ -28,15 +29,20 @@ namespace Michaelsoft.Mailer.Services
                                          string subject,
                                          string body,
                                          Dictionary<string, string> ccs = null,
-                                         Dictionary<string, string> bccs = null)
+                                         Dictionary<string, string> bccs = null,
+                                         Dictionary<string, Stream> attachments = null)
         {
             try
             {
                 ccs ??= new Dictionary<string, string>();
 
                 bccs ??= new Dictionary<string, string>();
+                
+                attachments ??= new Dictionary<string, Stream>();
+                
+                var attachmentCollection = BuildAttachmentCollection(attachments);
 
-                var message = BuildMessage(tos, ccs, bccs, subject, body, body);
+                var message = BuildMessage(tos, ccs, bccs, subject, body, body, attachmentCollection);
 
                 await SendEmail(message);
             }
@@ -52,7 +58,8 @@ namespace Michaelsoft.Mailer.Services
                                                       string template,
                                                       Dictionary<string, string> parameters,
                                                       Dictionary<string, string> ccs = null,
-                                                      Dictionary<string, string> bccs = null)
+                                                      Dictionary<string, string> bccs = null,
+                                                      Dictionary<string, Stream> attachments = null)
         {
             try
             {
@@ -60,11 +67,15 @@ namespace Michaelsoft.Mailer.Services
 
                 bccs ??= new Dictionary<string, string>();
 
+                attachments ??= new Dictionary<string, Stream>();
+
                 var textBody = BuildTextBody(template, parameters);
 
                 var htmlBody = BuildHtmlBody(template, parameters);
 
-                var message = BuildMessage(tos, ccs, bccs, subject, textBody, htmlBody);
+                var attachmentCollection = BuildAttachmentCollection(attachments);
+
+                var message = BuildMessage(tos, ccs, bccs, subject, textBody, htmlBody, attachmentCollection);
 
                 await SendEmail(message);
             }
@@ -79,7 +90,7 @@ namespace Michaelsoft.Mailer.Services
                                      Dictionary<string, string> parameters)
         {
             var body = File.ReadAllText(Path.Combine(_emailSettings.TemplatePath, $"{template}.txt"));
-            
+
             return parameters.Aggregate(body, (current,
                                                parameter) =>
                                             Regex.Replace(current, "\\{\\{" + parameter.Key + "\\}\\}",
@@ -90,11 +101,30 @@ namespace Michaelsoft.Mailer.Services
                                      Dictionary<string, string> parameters)
         {
             var body = File.ReadAllText(Path.Combine(_emailSettings.TemplatePath, $"{template}.html"));
-            
+
             return parameters.Aggregate(body, (current,
                                                parameter) =>
                                             Regex.Replace(current, "\\{\\{" + parameter.Key + "\\}\\}",
                                                           parameter.Value));
+        }
+
+        private AttachmentCollection BuildAttachmentCollection(Dictionary<string, Stream> attachments)
+        {
+            var attachmentCollection = new AttachmentCollection();
+            
+            foreach (var (name, stream) in attachments)
+            {
+                var attachment = new MimePart
+                {
+                    Content = new MimeContent(stream, ContentEncoding.Default),
+                    ContentDisposition = new ContentDisposition(ContentDisposition.Attachment),
+                    ContentTransferEncoding = ContentEncoding.Default,
+                    FileName = name
+                };
+                attachmentCollection.Add(attachment);
+            }
+
+            return attachmentCollection;
         }
 
         private MimeMessage BuildMessage(Dictionary<string, string> tos,
@@ -103,7 +133,7 @@ namespace Michaelsoft.Mailer.Services
                                          string subject,
                                          string textBody,
                                          string htmlBody,
-                                         AttachmentCollection attachments = null)
+                                         AttachmentCollection attachments)
         {
             var message = new MimeMessage();
 
@@ -125,6 +155,9 @@ namespace Michaelsoft.Mailer.Services
                 HtmlBody = htmlBody,
                 TextBody = textBody
             };
+
+            foreach (var attachment in attachments)
+                bodyBuilder.Attachments.Add(attachment);
 
             message.Body = bodyBuilder.ToMessageBody();
 

@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.IO;
 using System.Threading.Tasks;
 
 namespace Michaelsoft.Mailer.Interfaces
@@ -10,7 +11,8 @@ namespace Michaelsoft.Mailer.Interfaces
                             string subject,
                             string body,
                             Dictionary<string, string> ccs = null,
-                            Dictionary<string, string> bccs = null
+                            Dictionary<string, string> bccs = null,
+                            Dictionary<string, Stream> attachments = null
         );
 
         Task SendEmailUsingTemplateAsync(Dictionary<string, string> tos,
@@ -18,7 +20,8 @@ namespace Michaelsoft.Mailer.Interfaces
                                          string template,
                                          Dictionary<string, string> parameters,
                                          Dictionary<string, string> ccs = null,
-                                         Dictionary<string, string> bccs = null
+                                         Dictionary<string, string> bccs = null,
+                                         Dictionary<string, Stream> attachments = null
         );
 
     }
