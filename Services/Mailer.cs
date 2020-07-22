@@ -9,7 +9,6 @@ using Michaelsoft.Mailer.Interfaces;
 using Michaelsoft.Mailer.Settings;
 using Microsoft.Extensions.Options;
 using MimeKit;
-using MimeKit.Text;
 using AttachmentCollection = MimeKit.AttachmentCollection;
 using SmtpClient = MailKit.Net.Smtp.SmtpClient;
 
