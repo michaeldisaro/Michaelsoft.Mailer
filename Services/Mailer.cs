@@ -6,6 +6,7 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Michaelsoft.Mailer.Extensions;
 using Michaelsoft.Mailer.Interfaces;
+using Michaelsoft.Mailer.Models;
 using Michaelsoft.Mailer.Settings;
 using Microsoft.Extensions.Options;
 using MimeKit;
@@ -25,20 +26,20 @@ namespace Michaelsoft.Mailer.Services
         }
 
         public async Task SendMailAsync(Dictionary<string, string> tos,
-                                         string subject,
-                                         string body,
-                                         Dictionary<string, string> ccs = null,
-                                         Dictionary<string, string> bccs = null,
-                                         Dictionary<string, Stream> attachments = null)
+                                        string subject,
+                                        string body,
+                                        Dictionary<string, string> ccs = null,
+                                        Dictionary<string, string> bccs = null,
+                                        List<Attachment> attachments = null)
         {
             try
             {
                 ccs ??= new Dictionary<string, string>();
 
                 bccs ??= new Dictionary<string, string>();
-                
-                attachments ??= new Dictionary<string, Stream>();
-                
+
+                attachments ??= new List<Attachment>();
+
                 var attachmentCollection = BuildAttachmentCollection(attachments);
 
                 var message = BuildMessage(tos, ccs, bccs, subject, body, body, attachmentCollection);
@@ -53,12 +54,12 @@ namespace Michaelsoft.Mailer.Services
         }
 
         public async Task SendMailUsingTemplateAsync(Dictionary<string, string> tos,
-                                                      string subject,
-                                                      string template,
-                                                      Dictionary<string, string> parameters,
-                                                      Dictionary<string, string> ccs = null,
-                                                      Dictionary<string, string> bccs = null,
-                                                      Dictionary<string, Stream> attachments = null)
+                                                     string subject,
+                                                     string template,
+                                                     Dictionary<string, string> parameters,
+                                                     Dictionary<string, string> ccs = null,
+                                                     Dictionary<string, string> bccs = null,
+                                                     List<Attachment> attachments = null)
         {
             try
             {
@@ -66,7 +67,7 @@ namespace Michaelsoft.Mailer.Services
 
                 bccs ??= new Dictionary<string, string>();
 
-                attachments ??= new Dictionary<string, Stream>();
+                attachments ??= new List<Attachment>();
 
                 var textBody = BuildTextBody(template, parameters);
 
@@ -107,20 +108,20 @@ namespace Michaelsoft.Mailer.Services
                                                           parameter.Value));
         }
 
-        private AttachmentCollection BuildAttachmentCollection(Dictionary<string, Stream> attachments)
+        private AttachmentCollection BuildAttachmentCollection(List<Attachment> attachments)
         {
             var attachmentCollection = new AttachmentCollection();
-            
-            foreach (var (name, stream) in attachments)
+
+            foreach (var attachment in attachments)
             {
-                var attachment = new MimePart
+                var mimePart = new MimePart(attachment.Type, attachment.SubType)
                 {
-                    Content = new MimeContent(stream, ContentEncoding.Default),
+                    Content = new MimeContent(attachment.Content, ContentEncoding.Default),
                     ContentDisposition = new ContentDisposition(ContentDisposition.Attachment),
-                    ContentTransferEncoding = ContentEncoding.Default,
-                    FileName = name
+                    ContentTransferEncoding = ContentEncoding.Base64,
+                    FileName = attachment.Name
                 };
-                attachmentCollection.Add(attachment);
+                attachmentCollection.Add(mimePart);
             }
 
             return attachmentCollection;
