@@ -9,20 +9,21 @@ namespace Michaelsoft.Mailer.Interfaces
     {
 
         Task SendMailAsync(Dictionary<string, string> tos,
-                            string subject,
-                            string body,
-                            Dictionary<string, string> ccs = null,
-                            Dictionary<string, string> bccs = null,
-                            List<Attachment> attachments = null
+                           string subject,
+                           string body,
+                           Dictionary<string, string> ccs = null,
+                           Dictionary<string, string> bccs = null,
+                           List<Attachment> attachments = null
         );
 
         Task SendMailUsingTemplateAsync(Dictionary<string, string> tos,
-                                         string subject,
-                                         string template,
-                                         Dictionary<string, string> parameters,
-                                         Dictionary<string, string> ccs = null,
-                                         Dictionary<string, string> bccs = null,
-                                         List<Attachment> attachments = null
+                                        string subject,
+                                        string template,
+                                        Dictionary<string, string> parameters,
+                                        Dictionary<string, string> ccs = null,
+                                        Dictionary<string, string> bccs = null,
+                                        List<Attachment> attachments = null,
+                                        Dictionary<string, List<Dictionary<string,string>>> partials = null
         );
 
     }

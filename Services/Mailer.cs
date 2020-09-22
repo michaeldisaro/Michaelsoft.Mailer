@@ -59,7 +59,9 @@ namespace Michaelsoft.Mailer.Services
                                                      Dictionary<string, string> parameters,
                                                      Dictionary<string, string> ccs = null,
                                                      Dictionary<string, string> bccs = null,
-                                                     List<Attachment> attachments = null)
+                                                     List<Attachment> attachments = null,
+                                                     Dictionary<string, List<Dictionary<string, string>>> partials =
+                                                         null)
         {
             try
             {
@@ -69,9 +71,11 @@ namespace Michaelsoft.Mailer.Services
 
                 attachments ??= new List<Attachment>();
 
+                partials ??= new Dictionary<string, List<Dictionary<string, string>>>();
+
                 var textBody = BuildTextBody(template, parameters);
 
-                var htmlBody = BuildHtmlBody(template, parameters);
+                var htmlBody = BuildHtmlBody(template, parameters, partials);
 
                 var attachmentCollection = BuildAttachmentCollection(attachments);
 
@@ -89,6 +93,8 @@ namespace Michaelsoft.Mailer.Services
         private string BuildTextBody(string template,
                                      Dictionary<string, string> parameters)
         {
+            if (!File.Exists(Path.Combine(_emailSettings.TemplatePath, $"{template}.txt"))) return "";
+
             var body = File.ReadAllText(Path.Combine(_emailSettings.TemplatePath, $"{template}.txt"));
 
             return parameters.Aggregate(body, (current,
@@ -98,14 +104,63 @@ namespace Michaelsoft.Mailer.Services
         }
 
         private string BuildHtmlBody(string template,
-                                     Dictionary<string, string> parameters)
+                                     Dictionary<string, string> parameters,
+                                     Dictionary<string, List<Dictionary<string, string>>> partials)
         {
+            if (!File.Exists(Path.Combine(_emailSettings.TemplatePath, $"{template}.html"))) return "";
+
             var body = File.ReadAllText(Path.Combine(_emailSettings.TemplatePath, $"{template}.html"));
 
-            return parameters.Aggregate(body, (current,
+            body = parameters.Aggregate(body, (current,
                                                parameter) =>
                                             Regex.Replace(current, "\\{\\{" + parameter.Key + "\\}\\}",
                                                           parameter.Value));
+
+            body = IntegratePartials(body, partials);
+
+            return body;
+        }
+
+        private string IntegratePartials(string body,
+                                         Dictionary<string, List<Dictionary<string, string>>> partials)
+        {
+            const string partialRegex = "\\{\\{(_\\w+)\\}\\}";
+
+            var integratedPartials = false;
+            var matches = Regex.Matches(body, partialRegex).Select(m => m.Groups).Select(g => g[1].Value).ToArray();
+            while (matches.Any())
+            {
+                foreach (var match in matches)
+                {
+                    if (!partials.ContainsKey(match)) continue;
+
+                    if (!partials[match].Any()) continue;
+                    
+                    if (!File.Exists(Path.Combine(_emailSettings.TemplatePath, "Partials", $"{match}.html"))) continue;
+                    
+                    var partial =
+                        File.ReadAllText(Path.Combine(_emailSettings.TemplatePath, "Partials", $"{match}.html"));
+
+                    foreach (var parameters in partials[match])
+                    {
+                        partial = parameters.Aggregate(partial, (current,
+                                                                 parameter) =>
+                                                           Regex.Replace(current, "\\{\\{" + parameter.Key + "\\}\\}",
+                                                                         parameter.Value));
+                    }
+
+                    body = Regex.Replace(body, "\\{\\{" + match + "\\}\\}", partial);
+
+                    integratedPartials = true;
+                }
+
+                if (!integratedPartials) break;
+                
+                matches = Regex.Matches(body, partialRegex).Select(m => m.Groups).Select(g => g[1].Value).ToArray();
+                integratedPartials = false;
+            }
+
+            return body;
         }
 
         private AttachmentCollection BuildAttachmentCollection(List<Attachment> attachments)
