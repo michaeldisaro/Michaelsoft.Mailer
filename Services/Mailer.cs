@@ -73,7 +73,7 @@ namespace Michaelsoft.Mailer.Services
 
                 partials ??= new Dictionary<string, List<Dictionary<string, string>>>();
 
-                var textBody = BuildTextBody(template, parameters);
+                var textBody = BuildTextBody(template, parameters, partials);
 
                 var htmlBody = BuildHtmlBody(template, parameters, partials);
 
@@ -91,11 +91,14 @@ namespace Michaelsoft.Mailer.Services
         }
 
         private string BuildTextBody(string template,
-                                     Dictionary<string, string> parameters)
+                                     Dictionary<string, string> parameters,
+                                     Dictionary<string, List<Dictionary<string, string>>> partials)
         {
             if (!File.Exists(Path.Combine(_emailSettings.TemplatePath, $"{template}.txt"))) return "";
 
             var body = File.ReadAllText(Path.Combine(_emailSettings.TemplatePath, $"{template}.txt"));
+
+            body = IntegratePartials(body, partials, false);
 
             return parameters.Aggregate(body, (current,
                                                parameter) =>
@@ -116,14 +119,16 @@ namespace Michaelsoft.Mailer.Services
                                             Regex.Replace(current, "\\{\\{" + parameter.Key + "\\}\\}",
                                                           parameter.Value ?? ""));
 
-            body = IntegratePartials(body, partials);
+            body = IntegratePartials(body, partials, true);
 
             return body;
         }
 
         private string IntegratePartials(string body,
-                                         Dictionary<string, List<Dictionary<string, string>>> partials)
+                                         Dictionary<string, List<Dictionary<string, string>>> partials,
+                                         bool isHtml = true)
         {
+            var partialExtension = isHtml ? "html" : "txt";
             const string partialRegex = "\\{\\{(_\\w+)\\}\\}";
 
             var integratedPartials = false;
@@ -135,19 +140,21 @@ namespace Michaelsoft.Mailer.Services
                     if (!partials.ContainsKey(match)) continue;
 
                     if (!partials[match].Any()) continue;
-                    
-                    if (!File.Exists(Path.Combine(_emailSettings.TemplatePath, "Partials", $"{match}.html"))) continue;
-                    
+
+                    var partialFile = $"{match}.{partialExtension}";
+
+                    if (!File.Exists(Path.Combine(_emailSettings.TemplatePath, "Partials", partialFile))) continue;
+
                     var partialTemplate =
-                        File.ReadAllText(Path.Combine(_emailSettings.TemplatePath, "Partials", $"{match}.html"));
+                        File.ReadAllText(Path.Combine(_emailSettings.TemplatePath, "Partials", partialFile));
 
                     var partial = "";
                     foreach (var parameters in partials[match])
                     {
                         partial += parameters.Aggregate(partialTemplate, (current,
-                                                                         parameter) =>
-                                                           Regex.Replace(current, "\\{\\{" + parameter.Key + "\\}\\}",
-                                                                         parameter.Value ?? ""));
+                                                                          parameter) =>
+                                                            Regex.Replace(current, "\\{\\{" + parameter.Key + "\\}\\}",
+                                                                          parameter.Value ?? ""));
                     }
 
                     body = Regex.Replace(body, "\\{\\{" + match + "\\}\\}", partial);
@@ -156,7 +163,7 @@ namespace Michaelsoft.Mailer.Services
                 }
 
                 if (!integratedPartials) break;
-                
+
                 matches = Regex.Matches(body, partialRegex).Select(m => m.Groups).Select(g => g[1].Value).ToArray();
                 integratedPartials = false;
             }
