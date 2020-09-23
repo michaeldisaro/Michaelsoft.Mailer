@@ -100,7 +100,7 @@ namespace Michaelsoft.Mailer.Services
             return parameters.Aggregate(body, (current,
                                                parameter) =>
                                             Regex.Replace(current, "\\{\\{" + parameter.Key + "\\}\\}",
-                                                          parameter.Value));
+                                                          parameter.Value ?? ""));
         }
 
         private string BuildHtmlBody(string template,
@@ -114,7 +114,7 @@ namespace Michaelsoft.Mailer.Services
             body = parameters.Aggregate(body, (current,
                                                parameter) =>
                                             Regex.Replace(current, "\\{\\{" + parameter.Key + "\\}\\}",
-                                                          parameter.Value));
+                                                          parameter.Value ?? ""));
 
             body = IntegratePartials(body, partials);
 
@@ -138,15 +138,16 @@ namespace Michaelsoft.Mailer.Services
                     
                     if (!File.Exists(Path.Combine(_emailSettings.TemplatePath, "Partials", $"{match}.html"))) continue;
                     
-                    var partial =
+                    var partialTemplate =
                         File.ReadAllText(Path.Combine(_emailSettings.TemplatePath, "Partials", $"{match}.html"));
 
+                    var partial = "";
                     foreach (var parameters in partials[match])
                     {
-                        partial = parameters.Aggregate(partial, (current,
-                                                                 parameter) =>
+                        partial += parameters.Aggregate(partialTemplate, (current,
+                                                                         parameter) =>
                                                            Regex.Replace(current, "\\{\\{" + parameter.Key + "\\}\\}",
-                                                                         parameter.Value));
+                                                                         parameter.Value ?? ""));
                     }
 
                     body = Regex.Replace(body, "\\{\\{" + match + "\\}\\}", partial);
