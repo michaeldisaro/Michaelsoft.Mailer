@@ -151,10 +151,17 @@ namespace Michaelsoft.Mailer.Services
                     var partial = "";
                     foreach (var parameters in partials[match])
                     {
-                        partial += parameters.Aggregate(partialTemplate, (current,
-                                                                          parameter) =>
-                                                            Regex.Replace(current, "\\{\\{" + parameter.Key + "\\}\\}",
-                                                                          parameter.Value ?? ""));
+                        partial += parameters.Aggregate
+                            (partialTemplate, (current,
+                                               parameter) =>
+                            {
+                                var value = isHtml
+                                                ? parameter.Value?.Replace("\n", "<br>")
+                                                : parameter.Value;
+                                return Regex.Replace(current,
+                                                     "\\{\\{" + parameter.Key + "\\}\\}",
+                                                     value ?? "");
+                            });
                     }
 
                     body = Regex.Replace(body, "\\{\\{" + match + "\\}\\}", partial);
