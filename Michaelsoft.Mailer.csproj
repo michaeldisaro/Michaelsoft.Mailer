@@ -2,6 +2,16 @@
 
     <PropertyGroup>
         <TargetFramework>netcoreapp3.1</TargetFramework>
+        <PackageVersion>0.0.1</PackageVersion>
+        <Title>Michaelsoft.Mailer</Title>
+        <Authors>Michael Disarò</Authors>
+        <Description>A really simple to integrate email sender.</Description>
+        <Copyright>Michael Disarò</Copyright>
+        <PackageProjectUrl>https://github.com/michaeldisaro/Michaelsoft.Mailer</PackageProjectUrl>
+        <PackageLicenseUrl>https://github.com/michaeldisaro/Michaelsoft.Mailer/blob/master/LICENSE</PackageLicenseUrl>
+        <RepositoryUrl>https://github.com/michaeldisaro/Michaelsoft.Mailer</RepositoryUrl>
+        <RepositoryType>git</RepositoryType>
+        <PackageTags>mailer, simple, emailer, email sender, easy integration</PackageTags>
     </PropertyGroup>
 
     <ItemGroup>
