@@ -25,6 +25,46 @@ namespace Michaelsoft.Mailer.Services
             _emailSettings = emailSettings.Value;
         }
 
+        public Task SendMailAsync(string tos,
+                                  string subject,
+                                  string body,
+                                  string ccs = null,
+                                  string bccs = null,
+                                  List<Attachment> attachments = null)
+        {
+            var tosDict = tos.ToDictionaryOfRecipients();
+            var ccsDict = ccs.ToDictionaryOfRecipients();
+            var bccsDict = bccs.ToDictionaryOfRecipients();
+            return SendMailAsync(tosDict,
+                                 subject,
+                                 body,
+                                 ccsDict,
+                                 bccsDict,
+                                 attachments);
+        }
+
+        public Task SendMailUsingTemplateAsync(string tos,
+                                               string subject,
+                                               string template,
+                                               Dictionary<string, string> parameters,
+                                               string ccs = null,
+                                               string bccs = null,
+                                               List<Attachment> attachments = null,
+                                               Dictionary<string, List<Dictionary<string, string>>> partials = null)
+        {
+            var tosDict = tos.ToDictionaryOfRecipients();
+            var ccsDict = ccs.ToDictionaryOfRecipients();
+            var bccsDict = bccs.ToDictionaryOfRecipients();
+            return SendMailUsingTemplateAsync(tosDict,
+                                       subject,
+                                       template,
+                                       parameters,
+                                       ccsDict,
+                                       bccsDict,
+                                       attachments,
+                                       partials);
+        }
+
         public async Task SendMailAsync(Dictionary<string, string> tos,
                                         string subject,
                                         string body,
