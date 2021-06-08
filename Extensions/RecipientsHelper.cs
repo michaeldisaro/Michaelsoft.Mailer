@@ -57,6 +57,9 @@ namespace Michaelsoft.Mailer.Extensions
         public static Dictionary<string, string> ToDictionaryOfRecipients(this string recipients)
         {
             var recipientsDictionary = new Dictionary<string, string>();
+            if (recipients == null)
+                return recipientsDictionary;
+            
             var firstLevelSubdivision = recipients.Split(";");
             foreach (var recipient in firstLevelSubdivision)
             {
